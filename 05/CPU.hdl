@@ -39,5 +39,33 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    
+    
+    ARegister(in=MuxOut,load=intoTheARegLoad,out=RegOutA,out[0..14]=addressM); // done
+    Or(a=instruction[5],b=NottedLastIn,out=intoTheARegLoad); // Done 
+    PC(in=RegOutA,reset=reset,inc=true,out[0..14]=pc,load=Jump2); 
+
+    Not(in=instruction[15],out=NottedLastIn);        // this lets InM go to the A reg if inM[15]=0
+    Mux16(a=OutALU,b=instruction,sel=NottedLastIn,out=MuxOut); // mux on left of diagram 
+    ALU(x=RegOutD,y=AMMuxOut,zx=instruction[11],nx=instruction[10],zy=instruction[9],ny=instruction[8],f=instruction[7],no=instruction[6],out=outM,out=OutALU,zr=Zr, ng=Ng); // Done
+
+    And(a=instruction[15],b=instruction[4],out=IntoD);
+    DRegister(in=OutALU,load=IntoD,out=RegOutD);
+    Mux16(a=RegOutA,b=inM,sel=instruction[12],out=AMMuxOut); // middle of the diagram
+
+    Not(in=Ng,out=positiveNg);// If output is negative then 0 if output is positive then 1
+    Not(in=Zr,out=NottedZr); // If output is zero then 0 if anything else then 1
+    And(a=positiveNg,b=NottedZr,out=IsPositive);
+    //jmp commands
+     
+    And(a=instruction[0],b=IsPositive,out=JGT);
+
+    And(a=instruction[1],b=Zr,out=JEQ);
+
+    And(a=instruction[2],b=Ng,out=JLT);
+
+    Or8Way(in[0]=JGT,in[1]=JEQ,in[2]=JLT,out=Jump1);
+    And(a=Jump1,b=instruction[15],out=Jump2);
+    And(a=instruction[15],b=instruction[3],out=writeM);
+    
 }
